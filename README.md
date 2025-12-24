@@ -1,5 +1,5 @@
 # Markdown to PDF for Braynr 🚀
-
+[Anteprima App](image.png)
 Un'applicazione web leggera e veloce per convertire istantaneamente chat in Markdown (es. da Qwen o altri LLM) in documenti PDF pronti per lo studio avanzato su Braynr.
 
 ## 📖 Il Progetto
@@ -43,7 +43,7 @@ Grazie a questa automazione, posso dedicare più tempo alla lettura efficace e a
 
 ## 🚀 Come usarlo
 
-1. Apri `index.html` in qualsiasi browser.
+1. Apri `main.html` in qualsiasi browser.
 2. Incolla il testo Markdown nell'area di sinistra.
 3. Clicca su **"Scarica PDF"**.
 4. Importa il file su Braynr e inizia la tua sessione di lettura efficace.

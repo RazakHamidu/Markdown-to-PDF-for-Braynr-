@@ -1,5 +1,5 @@
 # Markdown to PDF for Braynr 🚀
-[Anteprima App](image.png)
+![Anteprima App](image.png)
 Un'applicazione web leggera e veloce per convertire istantaneamente chat in Markdown (es. da Qwen o altri LLM) in documenti PDF pronti per lo studio avanzato su Braynr.
 
 ## 📖 Il Progetto

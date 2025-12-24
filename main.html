@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markdown to PDF for Braynr 🚀</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3b82f6',
+                        secondary: '#64748b',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- React & ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Markdown Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
+
+    <!-- PDF Generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <style>
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 4px;
+        }
+        .dark ::-webkit-scrollbar-thumb {
+            background: #475569; 
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
+        }
+
+        /* STILI MARKDOWN */
+        .markdown-body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+        }
+        
+        .markdown-body h1, .markdown-body h2, .markdown-body h3 {
+            margin-top: 24px;
+            margin-bottom: 16px;
+            font-weight: 600;
+            line-height: 1.25;
+        }
+
+        .markdown-body h1 { font-size: 2em; border-bottom: 1px solid #eaecef; padding-bottom: .3em; }
+        .markdown-body h2 { font-size: 1.5em; border-bottom: 1px solid #eaecef; padding-bottom: .3em; }
+        .markdown-body h3 { font-size: 1.25em; }
+
+        .markdown-body p { margin-bottom: 16px; }
+
+        .markdown-body ul, .markdown-body ol { padding-left: 2em; margin-bottom: 16px; }
+        .markdown-body ul { list-style-type: disc; }
+        .markdown-body ol { list-style-type: decimal; }
+
+        .markdown-body blockquote {
+            padding: 0 1em;
+            color: #6a737d;
+            border-left: 0.25em solid #dfe2e5;
+            margin: 0 0 16px 0;
+        }
+
+        .markdown-body pre {
+            padding: 16px;
+            overflow: auto;
+            font-size: 85%;
+            line-height: 1.45;
+            background-color: #f6f8fa;
+            border-radius: 6px;
+            margin-bottom: 16px;
+        }
+        
+        .markdown-body code {
+            padding: 0.2em 0.4em;
+            margin: 0;
+            font-size: 85%;
+            background-color: rgba(175, 184, 193, 0.2);
+            border-radius: 6px;
+            font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace;
+        }
+        
+        .markdown-body pre code {
+            padding: 0;
+            margin: 0;
+            background-color: transparent;
+        }
+
+        .markdown-body table {
+            border-spacing: 0;
+            border-collapse: collapse;
+            margin-bottom: 16px;
+            width: 100%;
+            overflow: auto;
+        }
+        .markdown-body table th, .markdown-body table td {
+            padding: 6px 13px;
+            border: 1px solid #d0d7de;
+        }
+        .markdown-body table tr { background-color: #ffffff; }
+        .markdown-body table tr:nth-child(2n) { background-color: #f6f8fa; }
+
+        /* DARK MODE OVERRIDES */
+        .dark .markdown-body h1, .dark .markdown-body h2 { border-color: #30363d; }
+        .dark .markdown-body blockquote { color: #8b949e; border-color: #30363d; }
+        .dark .markdown-body pre { background-color: #161b22; }
+        .dark .markdown-body table tr { background-color: #0d1117; }
+        .dark .markdown-body table tr:nth-child(2n) { background-color: #161b22; }
+        .dark .markdown-body table th, .dark .markdown-body table td { border-color: #30363d; }
+        .dark .markdown-body code { background-color: rgba(110, 118, 129, 0.4); }
+
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 3px solid #3b82f6;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-900 transition-colors duration-200">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // Configurazione Markdown
+        marked.setOptions({
+            breaks: true,
+            gfm: true
+        });
+
+        // Icone SVG Inline per evitare conflitti con React reconciliation
+        const Icons = {
+            FileText: () => (
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>
+            ),
+            Sun: () => (
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+            ),
+            Moon: () => (
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+            ),
+            Download: () => (
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            )
+        };
+
+        const DEFAULT_MARKDOWN = `# Benvenuto nel tuo Bridge per Braynr 🚀
+
+Incolla qui la tua chat di **Qwen** per convertirla istantaneamente in un PDF ottimizzato per lo studio tecnico e la lettura efficace.
+
+## Come funziona il tuo workflow:
+
+1. **Copia**: Prendi il testo generato dall'IA.
+2. **Incolla**: Inseriscilo qui a sinistra.
+3. **Converti**: Clicca su "Scarica PDF".
+4. **Studia**: Carica il file su **Braynr** per mappe mentali e lettura profonda.
+
+## Esempio di formattazione tecnica:
+
+### Componenti Elettrotecnici
+- **Trasformatore**: Macchina statica...
+- **Motore Asincrono**: Conversione energia...
+
+\`\`\`javascript
+// Esempio logica di controllo
+if (tensione > 230) {
+    attivaProtezione();
+}
+\`\`\`
+
+| Studio | Strumento | Stato |
+| :--- | :--- | :---: |
+| Generazione | Qwen | 🤖 |
+| Conversione | Questo Tool | ⚡ |
+| Analisi | Braynr | 🧠 |
+
+---
+*Creato per gli studenti di Manutenzione Elettrotecnica - 5° Anno.*
+`;
+
+        const App = () => {
+            const [markdown, setMarkdown] = useState(DEFAULT_MARKDOWN);
+            const [isDarkMode, setIsDarkMode] = useState(false);
+            const [isGenerating, setIsGenerating] = useState(false);
+            const previewRef = useRef(null);
+
+            // Gestione Dark Mode
+            useEffect(() => {
+                const html = document.documentElement;
+                if (isDarkMode) {
+                    html.classList.add('dark');
+                    document.body.classList.add('bg-slate-900');
+                    document.body.classList.remove('bg-slate-100');
+                } else {
+                    html.classList.remove('dark');
+                    document.body.classList.remove('bg-slate-900');
+                    document.body.classList.add('bg-slate-100');
+                }
+            }, [isDarkMode]);
+
+            const handleDownloadPDF = () => {
+                if (!previewRef.current) return;
+                setIsGenerating(true);
+
+                const element = previewRef.current;
+                const opt = {
+                    margin:       [10, 10, 10, 10],
+                    filename:     'documento-markdown.pdf',
+                    image:        { type: 'jpeg', quality: 0.98 },
+                    html2canvas:  { 
+                        scale: 2, 
+                        useCORS: true, 
+                        letterRendering: true,
+                        backgroundColor: isDarkMode ? '#0d1117' : '#ffffff' 
+                    },
+                    jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                };
+
+                setTimeout(() => {
+                    html2pdf().set(opt).from(element).save().then(() => {
+                        setIsGenerating(false);
+                    }).catch(err => {
+                        console.error(err);
+                        setIsGenerating(false);
+                    });
+                }, 150);
+            };
+
+            const getMarkdownText = () => {
+                const rawMarkup = marked.parse(markdown);
+                const cleanMarkup = DOMPurify.sanitize(rawMarkup);
+                return { __html: cleanMarkup };
+            };
+
+            return (
+                <div className={`min-h-screen flex flex-col ${isDarkMode ? 'text-slate-100' : 'text-slate-900'}`}>
+                    
+                    {/* Header */}
+                    <header className={`p-4 shadow-md flex justify-between items-center z-10 sticky top-0 ${isDarkMode ? 'bg-slate-800 border-b border-slate-700' : 'bg-white border-b border-slate-200'}`}>
+                        <div className="flex items-center gap-2">
+                            <div className="text-primary"><Icons.FileText /></div>
+                            <h1 className="font-bold text-lg hidden sm:block">Markdown to PDF for Braynr 🚀</h1>
+                        </div>
+
+                        <div className="flex gap-3">
+                            <button 
+                                onClick={() => setIsDarkMode(!isDarkMode)}
+                                className={`p-2 rounded-lg transition-colors ${isDarkMode ? 'bg-slate-700 hover:bg-slate-600' : 'bg-slate-100 hover:bg-slate-200'}`}
+                            >
+                                {isDarkMode ? <Icons.Sun /> : <Icons.Moon />}
+                            </button>
+
+                            <button 
+                                onClick={handleDownloadPDF}
+                                disabled={isGenerating}
+                                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
+                            >
+                                {isGenerating ? <div className="loader"></div> : <Icons.Download />}
+                                <span className="hidden sm:inline">Scarica PDF</span>
+                            </button>
+                        </div>
+                    </header>
+
+                    {/* Main */}
+                    <main className="flex-1 flex flex-col md:flex-row h-[calc(100vh-64px)] overflow-hidden">
+                        
+                        {/* Editor */}
+                        <section className={`flex-1 flex flex-col border-b md:border-b-0 md:border-r ${isDarkMode ? 'border-slate-700 bg-slate-900' : 'border-slate-200 bg-slate-50'}`}>
+                            <div className={`py-2 px-4 text-xs font-semibold uppercase ${isDarkMode ? 'text-slate-400 bg-slate-800' : 'text-slate-500 bg-slate-200'}`}>
+                                Input Markdown
+                            </div>
+                            <textarea
+                                className={`flex-1 w-full p-4 resize-none focus:outline-none font-mono text-sm leading-relaxed ${isDarkMode ? 'bg-slate-900 text-slate-300' : 'bg-white text-slate-800'}`}
+                                value={markdown}
+                                onChange={(e) => setMarkdown(e.target.value)}
+                                placeholder="Scrivi qui..."
+                                spellCheck="false"
+                            />
+                        </section>
+
+                        {/* Preview */}
+                        <section className={`flex-1 flex flex-col relative ${isDarkMode ? 'bg-slate-800' : 'bg-white'}`}>
+                            <div className={`py-2 px-4 text-xs font-semibold uppercase ${isDarkMode ? 'text-slate-400 bg-slate-900' : 'text-slate-500 bg-slate-200'}`}>
+                                Anteprima
+                            </div>
+                            <div className="flex-1 overflow-y-auto p-8">
+                                <div 
+                                    ref={previewRef}
+                                    className={`markdown-body max-w-3xl mx-auto min-h-[500px] ${isDarkMode ? 'text-slate-200' : 'text-slate-900'}`}
+                                    dangerouslySetInnerHTML={getMarkdownText()} 
+                                />
+                            </div>
+                        </section>
+                    </main>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
